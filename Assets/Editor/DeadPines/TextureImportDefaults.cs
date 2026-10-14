@@ -21,7 +21,10 @@ namespace DeadPines.EditorTools
     {
         /// Bump this when the rules below change, or already-stamped textures will keep the
         /// old settings forever.
-        const string Marker = "deadpines.tex.v1";
+        /// v2 — v1 stamped normal maps as Default-type BC5, which left them sRGB and
+        /// gamma-decoded. The eight terrain textures carry the v1 stamp, so without this bump
+        /// the fix would never reach them: the marker guard would skip them on sight.
+        const string Marker = "deadpines.tex.v2";
 
         const int DefaultSize = 1024;
         const int HeroSize = 2048;
@@ -55,10 +58,12 @@ namespace DeadPines.EditorTools
             if (importer.userData == Marker)
                 return;
 
-            // Leave sprites, cursors and anything already declared a Normal Map alone. Unity
-            // compresses those correctly on its own, and overriding them here would be wrong
-            // in ways that are hard to see.
-            if (importer.textureType != TextureImporterType.Default)
+            // Leave sprites, cursors, lightmaps and anything else Unity has already given a
+            // deliberate type alone — overriding those here would be wrong in ways that are
+            // hard to see. NormalMap is the exception: it is a type this postprocessor sets
+            // itself, so re-stamping after a marker bump has to be allowed through.
+            if (importer.textureType != TextureImporterType.Default &&
+                importer.textureType != TextureImporterType.NormalMap)
                 return;
 
             var path = assetPath.Replace('\\', '/');
@@ -77,6 +82,16 @@ namespace DeadPines.EditorTools
             // §11 — 2048² for terrain and hero only. Everything else is 1024².
             bool hero = lower.Contains("/terrain/") || lower.Contains("/hero/");
             int maxSize = hero ? HeroSize : DefaultSize;
+
+            // Normal maps are not "a texture that got BC5". textureType = NormalMap is what
+            // turns sRGB off and applies the right unpacking; setting BC5 on a Default-type
+            // texture instead leaves it gamma-decoded, so every surface it touches is lit
+            // slightly wrong and nothing anywhere reports an error.
+            if (LooksLikeNormal(name))
+            {
+                ConfigureNormalMap(importer, maxSize, path);
+                return;
+            }
 
             var format = ChooseFormat(name, out var formatName);
 
@@ -110,12 +125,52 @@ namespace DeadPines.EditorTools
         /// the kind of assumption that should be visible rather than buried. Every texture it
         /// touches is logged by name, so a wrong guess is easy to spot.
         /// </summary>
+        /// <summary>
+        /// Filename-based, like everything else here — and it has to be, because a normal map
+        /// is indistinguishable from an albedo at the byte level. Poly Haven ships `_nor_gl`
+        /// (OpenGL convention, green-up, which is what Unity expects) alongside `_nor_dx`;
+        /// both match here, and we download the gl one.
+        /// </summary>
+        static bool LooksLikeNormal(string nameLower)
+        {
+            return ContainsAny(nameLower, "_nor", "_normal", "_nrm", "_normalmap")
+                   || nameLower.EndsWith("_n");
+        }
+
+        /// <summary>
+        /// §2 — normals to BC5. Note this sets textureType as well as the format. The format
+        /// alone is not enough: a Default-type texture is sampled as sRGB, and a
+        /// gamma-decoded normal vector is not a normal vector.
+        /// </summary>
+        static void ConfigureNormalMap(TextureImporter importer, int maxSize, string path)
+        {
+            var format = Resolve("BC5", out var formatName);
+
+            importer.textureType = TextureImporterType.NormalMap;
+            importer.maxTextureSize = maxSize;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            importer.crunchedCompression = false;
+            importer.sRGBTexture = false;
+            importer.mipmapEnabled = true;
+            importer.streamingMipmaps = true;
+
+            var platform = new TextureImporterPlatformSettings
+            {
+                name = "Standalone",
+                overridden = true,
+                maxTextureSize = maxSize,
+                format = format,
+                textureCompression = TextureImporterCompression.Compressed,
+                crunchedCompression = false,
+            };
+            importer.SetPlatformTextureSettings(platform);
+            importer.userData = Marker;
+
+            Debug.Log($"[Dead Pines] {path} → normal map, {maxSize}² {formatName}");
+        }
+
         static TextureImporterFormat ChooseFormat(string nameLower, out string usedName)
         {
-            if (ContainsAny(nameLower,
-                    "_normal", "_nrm", "_nor", "_normalmap") || nameLower.EndsWith("_n"))
-                return Resolve("BC5", out usedName);
-
             if (ContainsAny(nameLower,
                     "_mask", "_maskmap", "_metallic", "_metal", "_roughness", "_rough",
                     "_ao", "_occlusion", "_specular", "_smoothness", "_gloss"))

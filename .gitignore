@@ -1,0 +1,95 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Never commit the Unity project's generated solution files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files for folders that are ignored
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Crash reports
+sysinfo.txt
+crashlytics-build.properties
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# ---------------------------------------------------------------------------
+# Asset licences — THIS REPOSITORY IS PUBLIC.
+#
+# Raw third-party assets are not ours to redistribute. Mixamo's terms allow use
+# in a shipped game but not redistribution of the raw FBX, and the same is true
+# of most "free" Asset Store and marketplace content. Keep the originals out of
+# the repo; the game ships them inside a build, which is a different thing.
+#
+# The Asset Store EULA is explicit — assets must be embedded in a larger product
+# and must not comprise a substantial portion of it. Royalty-free to *ship* is
+# not the same as free to redistribute. Viking Village and friends live here.
+# ---------------------------------------------------------------------------
+Assets/ThirdParty/**
+Assets/ThirdParty.meta
+*.fbx
+*.fbx.meta
+*.mixamo
+
+# Vendor audio — Sonniss GDC bundles, Freesound, anything we didn't record
+# ourselves. The Sonniss licence covers shipping the game, not handing out the
+# raw WAVs. ~208 GB of this lands at M0.
+*.wav
+*.wav.meta
+*.aiff
+*.aiff.meta
+*.flac
+*.flac.meta
+*.mp3
+*.mp3.meta
+*.ogg
+*.ogg.meta
+
+# Exception: FBX files we authored ourselves, if that ever happens. None yet.
+# Exception: audio we record or synthesise ourselves. When that exists, keep it
+#            outside the ignored folders — e.g. Assets/Audio/Original/ — rather
+#            than whitelisting individual extensions back in.
+
+# ---------------------------------------------------------------------------
+# Design docs — these live in a separate private repository, not here.
+# A guardrail, so a docs/ folder can't be committed to a public repo by accident.
+# ---------------------------------------------------------------------------
+/docs/
+
+# ---------------------------------------------------------------------------
+# Machine-specific
+# ---------------------------------------------------------------------------
+.vsconfig
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.stackdump

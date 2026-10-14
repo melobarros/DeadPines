@@ -50,7 +50,18 @@ namespace DeadPines.EditorTools
 
         const int NoiseSeed = 20261014;
         const float BaseFrequency = 2.5f;
-        const int Octaves = 5;
+
+        // The finest octave is TileSize / (BaseFrequency × 2^(Octaves-1)) metres across, so
+        // six octaves puts the smallest feature at 12.5 m. That is a ceiling, not a taste
+        // call: the heightmap is 1025² over a kilometre — 0.98 m per texel — and a feature
+        // needs about a dozen texels to read as a shape rather than as noise, so anything
+        // below ~12 m aliases. At five octaves the finest was 25 m and the ground had no
+        // shape at all at eye level; it read as a textured plain.
+        //
+        // It is also the floor of what terrain can do here. Foot-level detail — the hummocks
+        // and roots you feel underfoot — is a metre-scale feature and unreachable at any
+        // octave count on this tile. That is the detail-mesh system's job.
+        const int Octaves = 6;
 
         [MenuItem(MenuPath, priority = 20)]
         public static void Build()

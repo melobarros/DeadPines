@@ -342,8 +342,13 @@ namespace DeadPines.EditorTools
             log.AppendLine();
             log.AppendLine("[Camera]");
 
-            var go = FindInScene(scene, "M0_Camera");
-            if (go == null)
+            // Searched at any depth, not just at the root. Phase 3 re-parents this camera onto
+            // M0_Player, and a root-only search would then miss it and build a second
+            // M0_Camera at the origin — two cameras rendering the same frame, which
+            // TECHNICAL.md's "use one camera" exists to prevent.
+            var go = FindAnywhere(scene, "M0_Camera");
+            bool created = go == null;
+            if (created)
                 go = new GameObject("M0_Camera");
 
             // Never `??` on a UnityEngine.Object. GetComponent returns Unity's "fake null" —
@@ -360,10 +365,15 @@ namespace DeadPines.EditorTools
                 return;
             }
 
-            // Eye height. 1.7 m is the working assumption until the controller exists and
-            // picks its own.
-            go.transform.position = new Vector3(0f, 1.7f, 0f);
-            go.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            // Eye height, and only while the camera is still loose in the scene. 1.7 m is the
+            // working assumption until Phase 3 exists and picks its own. Once Phase 3 has
+            // adopted it the position belongs to M0_Player, and writing a world position here
+            // would drag the player's head back to the origin.
+            if (go.transform.parent == null)
+            {
+                go.transform.position = new Vector3(0f, 1.7f, 0f);
+                go.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            }
 
             camera.clearFlags = CameraClearFlags.Skybox;
             camera.fieldOfView = 60f;
@@ -376,7 +386,10 @@ namespace DeadPines.EditorTools
             data.renderPostProcessing = true;
             data.antialiasing = AntialiasingMode.None;
 
-            log.AppendLine($"  position      {go.transform.position}");
+            log.AppendLine($"  camera        {(created ? "created" : "reused")}");
+            log.AppendLine($"  position      {(go.transform.parent == null
+                ? go.transform.position.ToString()
+                : "on " + go.transform.parent.name + " — left alone")}");
             log.AppendLine($"  clear flags   {camera.clearFlags}");
             log.AppendLine($"  post-process  {data.renderPostProcessing}  (must be True)");
             log.AppendLine($"  antialiasing  {data.antialiasing}");
@@ -421,6 +434,15 @@ namespace DeadPines.EditorTools
         {
             log.AppendLine();
             log.AppendLine("[Ground plane — TEMPORARY scaffolding]");
+
+            // Phase 2 deletes this on purpose the moment real terrain lands. Re-running Phase 1
+            // afterwards would otherwise put it straight back: a 2 km grey plane at y = 0,
+            // underneath the heightmap and poking through wherever the terrain dips below zero.
+            if (FindInScene(scene, "M0_Terrain") != null)
+            {
+                log.AppendLine("  skipped       M0_Terrain is in the scene — the scaffolding stays deleted");
+                return;
+            }
 
             var go = FindInScene(scene, "TEMP_GroundPlane");
             if (go == null)
@@ -533,6 +555,29 @@ namespace DeadPines.EditorTools
             foreach (var root in scene.GetRootGameObjects())
                 if (root.name == name)
                     return root;
+            return null;
+        }
+
+        /// <summary>
+        /// Finds a GameObject at any depth, not just at the root.
+        ///
+        /// M0_Camera starts as a root object — this script leaves it loose — and becomes a child
+        /// of M0_Player the first time Phase 3 runs. A root-only search would therefore find it
+        /// once and then report it missing on every re-run, which builds a duplicate camera
+        /// rather than reporting anything wrong.
+        /// </summary>
+        static GameObject FindAnywhere(UnityEngine.SceneManagement.Scene scene, string name)
+        {
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                if (root.name == name)
+                    return root;
+
+                foreach (var child in root.GetComponentsInChildren<Transform>(true))
+                    if (child.name == name)
+                        return child.gameObject;
+            }
+
             return null;
         }
     }

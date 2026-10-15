@@ -71,7 +71,20 @@ Assets/ThirdParty.meta
 *.ogg
 *.ogg.meta
 
-# Exception: FBX files we authored ourselves, if that ever happens. None yet.
+# Exception: the tree pack — Assets/Art/Trees/ — which is CC BY 4.0. That licence
+# permits redistribution outright, unlike everything above, whose terms cover
+# shipping the game but not handing out the raw files. The attribution it requires
+# lives in Assets/Art/SOURCES.md and has to reach the game's own credits before ship.
+#
+# This is the one place a whitelist is correct, because *.fbx is an *extension*
+# rule: moving files into a different folder does not escape it, so the note below
+# about keeping originals outside ignored folders cannot work for meshes. The path
+# is deliberately narrow — one folder, one extension — so nothing else slips in.
+# Note both lines: git needs the .meta whitelisted too, or the mesh arrives with no
+# import settings and no obvious reason why.
+!Assets/Art/Trees/**/*.fbx
+!Assets/Art/Trees/**/*.fbx.meta
+
 # Exception: audio we record or synthesise ourselves. When that exists, keep it
 #            outside the ignored folders — e.g. Assets/Audio/Original/ — rather
 #            than whitelisting individual extensions back in.

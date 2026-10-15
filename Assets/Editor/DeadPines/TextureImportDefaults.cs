@@ -24,7 +24,11 @@ namespace DeadPines.EditorTools
         /// v2 — v1 stamped normal maps as Default-type BC5, which left them sRGB and
         /// gamma-decoded. The eight terrain textures carry the v1 stamp, so without this bump
         /// the fix would never reach them: the marker guard would skip them on sight.
-        const string Marker = "deadpines.tex.v2";
+        /// v3 — the single-channel and alpha rules below. The tree pack's AO maps were landing
+        /// on BC1 (four channels for one channel of data) and its billboards on BC1 too, whose
+        /// one-bit alpha turns a tree silhouette into a staircase. Anything imported between
+        /// v2 and now carries the wrong stamp and needs this bump to be looked at again.
+        const string Marker = "deadpines.tex.v3";
 
         const int DefaultSize = 1024;
         const int HeroSize = 2048;
@@ -80,7 +84,16 @@ namespace DeadPines.EditorTools
                 return;
 
             // §11 — 2048² for terrain and hero only. Everything else is 1024².
-            bool hero = lower.Contains("/terrain/") || lower.Contains("/hero/");
+            //
+            // Trees are here because their source maps are authored at 2048² (the needle
+            // clusters) and 1024×2048 (bark), and a 1024 cap would silently halve them. Fifteen
+            // trees share two materials, so this is two texture sets at 2048², not fifteen —
+            // which is exactly the "hero assets only" budget §2 was written to protect.
+            // maxTextureSize is a cap, never an upscale, so the 1024² and 512² billboards that
+            // share this folder are unaffected.
+            bool hero = lower.Contains("/terrain/")
+                        || lower.Contains("/hero/")
+                        || lower.Contains("/trees/");
             int maxSize = hero ? HeroSize : DefaultSize;
 
             // Normal maps are not "a texture that got BC5". textureType = NormalMap is what
@@ -171,10 +184,25 @@ namespace DeadPines.EditorTools
 
         static TextureImporterFormat ChooseFormat(string nameLower, out string usedName)
         {
+            // One channel of data, so one channel of memory. "occlusion" rather than
+            // "_occlusion" because a file called bark_ambientocclusion is the same map under a
+            // longer name, and the leading underscore quietly missed it.
             if (ContainsAny(nameLower,
                     "_mask", "_maskmap", "_metallic", "_metal", "_roughness", "_rough",
-                    "_ao", "_occlusion", "_specular", "_smoothness", "_gloss"))
+                    "_ao", "occlusion", "_specular", "_smoothness", "_gloss",
+                    "_opacity", "_subsurface", "_sss"))
                 return Resolve("BC4", out usedName);
+
+            // Anything whose alpha carries a silhouette. BC1's alpha is a single bit, so a
+            // billboard edge through it is a staircase rather than a fade; BC7 spends 8 bits
+            // per pixel and keeps the gradient. BC3 is the fallback for a Unity version that
+            // spells BC7 differently — worse, but still interpolated alpha rather than a
+            // hard cut.
+            // "cutout" without the leading underscore, for the same reason "occlusion" lost
+            // its — Phase 4 writes Cluster_AlbedoCutout, where the word is a suffix on another
+            // word rather than a field of its own.
+            if (ContainsAny(nameLower, "_billboard", "cutout"))
+                return Resolve(new[] { "BC7", "BC3", "DXT5" }, out usedName);
 
             // §2 — albedo to BC1. DXT1 is the older spelling of the same thing, kept as a
             // fallback because the enum has been renamed across Unity versions.

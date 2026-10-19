@@ -75,6 +75,7 @@ namespace DeadPines.Player
         float verticalVelocity;
         float eyeHeight;
         bool crouching;
+        bool running;
         float distanceTravelled;
 
         /// <summary>
@@ -85,6 +86,13 @@ namespace DeadPines.Player
         public float DistanceTravelled => distanceTravelled;
 
         public bool IsCrouching => crouching;
+
+        /// <summary>
+        /// Running this frame. Promoted from the local it used to be so the audio pass can pick a
+        /// stride length and a run footstep pool without reading the sprint binding a second time
+        /// and risking the two disagreeing by a frame.
+        /// </summary>
+        public bool IsRunning => running;
 
         void Awake()
         {
@@ -258,7 +266,7 @@ namespace DeadPines.Player
             if (wish.sqrMagnitude > 1f)
                 wish.Normalize();
 
-            bool running = sprintAction != null && sprintAction.IsPressed() && !crouching;
+            running = sprintAction != null && sprintAction.IsPressed() && !crouching;
             float speed = crouching ? crouchSpeed : running ? runSpeed : walkSpeed;
 
             if (controller.isGrounded && verticalVelocity < 0f)

@@ -387,9 +387,11 @@ namespace DeadPines.EditorTools
             data.antialiasing = AntialiasingMode.None;
 
             log.AppendLine($"  camera        {(created ? "created" : "reused")}");
-            log.AppendLine($"  position      {(go.transform.parent == null
+            // Concatenated rather than interpolated: an interpolated string cannot span lines
+            // at this project's C# 9, and the compiler says so only when it next builds.
+            log.AppendLine("  position      " + (go.transform.parent == null
                 ? go.transform.position.ToString()
-                : "on " + go.transform.parent.name + " — left alone")}");
+                : "on " + go.transform.parent.name + " — left alone"));
             log.AppendLine($"  clear flags   {camera.clearFlags}");
             log.AppendLine($"  post-process  {data.renderPostProcessing}  (must be True)");
             log.AppendLine($"  antialiasing  {data.antialiasing}");

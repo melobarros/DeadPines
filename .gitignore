@@ -85,9 +85,24 @@ Assets/ThirdParty.meta
 !Assets/Art/Trees/**/*.fbx
 !Assets/Art/Trees/**/*.fbx.meta
 
-# Exception: audio we record or synthesise ourselves. When that exists, keep it
-#            outside the ignored folders — e.g. Assets/Audio/Original/ — rather
-#            than whitelisting individual extensions back in.
+# Exception: CC0 audio — Assets/Audio/CC0/ — which is committed, because CC0 is a
+# public-domain dedication: no attribution debt and redistribution permitted
+# outright, the same reasoning as the Poly Haven terrain. Everything else stays
+# behind the extension rules above — Freesound's CC BY and its legacy Sampling+
+# licence, Sonniss, anything we did not record. Nothing under those terms may be
+# moved into this folder: the folder name is an invariant, not a description.
+#
+# The note that sat here before — "keep original audio outside the ignored
+# folders" — was wrong, and wrong in exactly the way the mesh note above already
+# works out: *.wav on line 63 is an *extension* rule, so no folder escapes it,
+# and Assets/Audio/Original/ would have been ignored like anywhere else. Only a
+# whitelist works, and like the meshes it needs the .meta line too, or the clip
+# arrives with no import settings and no obvious reason why.
+#
+# CC BY audio is a different thing and would need its own folder and an entry in
+# Assets/Art/SOURCES.md, the way the trees have one.
+!Assets/Audio/CC0/**/*.wav
+!Assets/Audio/CC0/**/*.wav.meta
 
 # ---------------------------------------------------------------------------
 # Design docs — these live in a separate private repository, not here.
